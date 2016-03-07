@@ -168,7 +168,7 @@ function call1() {
   var audio1 = document.getElementById('audio1');
 
   var audioDestination1 = audioOutput1Select.value;
-  attachSinkId(audio1, audioDestination1);
+  // attachSinkId(audio1, audioDestination1);
 
   var constraints1 = {
     media: {
@@ -187,6 +187,11 @@ function call1() {
   audio1.src = window.URL.createObjectURL(window.stream1);
   call1Session = window.ua.invite('15555557998@webrtctest.onsip.com', audio1);
 
+  // Applying the hack to set a particular output device id.
+  call1Session.on('accepted', function() {
+    setSinkIdByHack(audio1, call1Session, audioOutput1Select.value);
+  });
+
   logSession(call1Session);
 }
 
@@ -197,7 +202,7 @@ function call2() {
 
   var audio2 = document.getElementById('audio2');
   var audioDestination2 = audioOutput2Select.value;
-  attachSinkId(audio2, audioDestination2);
+  // attachSinkId(audio2, audioDestination2);
 
   var constraints2 = {
     media: {
@@ -214,8 +219,31 @@ function call2() {
   };
   audio2.src = window.URL.createObjectURL(window.stream2);
   call2Session = window.ua.invite('15555557998@webrtctest.onsip.com', audio2);
+
+
+  // Applying the hack to set a particular output device id.
+  call2Session.on('accepted', function() {
+    setSinkIdByHack(audio2, call2Session, audioOutput2Select.value);
+  });
+
   logSession(call2Session);
 }
+
+function setSinkIdByHack(audioTag, session, newSinkId) {
+  var ctx = new AudioContext(); // There can be only 6 instances of AudioContext.
+  var remoteStream = session.getRemoteStreams()[0];
+  var srcNode = ctx.createMediaStreamSource(remoteStream);
+
+  var destNode = ctx.createMediaStreamDestination();
+  srcNode.connect(destNode);
+
+  audioTag.src = URL.createObjectURL(destNode.stream);
+  audioTag.play();
+
+  attachSinkId(audioTag, newSinkId);
+  // audioTag.setSinkId(newSinkId);
+}
+
 
 function start() {
   if (window.stream1) {
