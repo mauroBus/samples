@@ -20,11 +20,12 @@
 
   <base target="_blank">
 
-  <title>Select audio and video sources</title>
+  <title>Bug 5525 Repro Steps</title>
 
   <link rel="icon" sizes="192x192" href="../../../images/webrtc-icon-192x192.png">
   <link href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet" type="text/css">
   <link rel="stylesheet" href="../../../css/main.css">
+  <script src="http://sipjs.com/download/sip-0.7.3.js" type="text/javascript"></script>
 
   <style>
     div.select {
@@ -38,6 +39,15 @@
       width: 12em;
       display: inline-block;
     }
+
+    .hidden {
+      display: none;
+    }
+
+    .visible {
+      display: inherit;
+    }
+
   </style>
 
 </head>
@@ -51,23 +61,37 @@
 
     <p class="small"><b>*</b>Enable experimental support in <b>Chrome 45.0.2441.x</b> or later by selecting <b>Enable experimental Web Platform features</b> in <b>chrome://flags</b> or by using command line flag "<b>--enable-blink-features=EnumerateDevices,AudioOutputDevices</b>". Use the <code>setSinkID()</code> method on the video element and provide a audio or video element and a sinkId (<code>deviceId</code> for where <code>deviceInfo.kind === 'audiooutput'</code>) as arguments. Also the web page must be served over HTTPS.</p>
 
-    <div class="select">
-      <label for="audioSource">Audio input source: </label><select id="audioSource"></select>
+    <div>
+      <div class="select">
+        <label for="audioInput1">Audio input 1: </label><select id="audioInput1"></select>
+      </div>
+
+      <div class="select">
+        <label for="audioOutput1">Audio output 1: </label><select id="audioOutput1"></select>
+      </div>
+
+      <button id="call1StartBtn" onclick="call1()">Start WebRTC Call 1</button>
+      <button id="call1StopBtn" class="hidden" onclick="stopCall1()">Stop WebRTC Call 1</button>
+
     </div>
 
-    <div class="select">
-      <label for="audioOutput">Audio output destination: </label><select id="audioOutput"></select>
+    <div>
+      <div class="select">
+        <label for="audioInput1">Audio input 2: </label><select id="audioInput2"></select>
+      </div>
+
+      <div class="select">
+        <label for="audioOutput1">Audio output 2: </label><select id="audioOutput2"></select>
+      </div>
+
+      <button id="call2StartBtn" onclick="call2()">Start WebRTC Call 2</button>
+      <button id="call2StopBtn" class="hidden" onclick="stopCall2()">Stop WebRTC Call 1</button>
+
     </div>
 
-    <div class="select">
-      <label for="videoSource">Video source: </label><select id="videoSource"></select>
-    </div>
+    <a href="TestConfig.png">Sample Config</a>
 
-    <video id="video" autoplay></video>
 
-    <p class="small"><b>Note:</b> If you hear a reverb sound your microphone is picking up the output of your speakers/headset, lower the volume and/or move the microphone further away from your speakers/headset.</p>
-
-    <a href="https://github.com/webrtc/samples/tree/gh-pages/src/content/devices/input-output" title="View source for this page on GitHub" id="viewSource">View source on GitHub</a>
   </div>
 
   <script src="../../../js/adapter.js"></script>

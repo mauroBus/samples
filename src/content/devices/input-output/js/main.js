@@ -8,37 +8,65 @@
 
 'use strict';
 
-var videoElement = document.querySelector('video');
-var audioInputSelect = document.querySelector('select#audioSource');
-var audioOutputSelect = document.querySelector('select#audioOutput');
-var videoSelect = document.querySelector('select#videoSource');
-var selectors = [audioInputSelect, audioOutputSelect, videoSelect];
+var audioElement1 = document.createElement("audio");
+audioElement1.id = "audio1";
+document.getElementsByTagName('body')[0].appendChild(audioElement1);
+
+
+var audioElement2 = document.createElement("audio");
+audioElement2.id = "audio2";
+document.getElementsByTagName('body')[0].appendChild(audioElement2);
+
+
+var audioInput1Select = document.querySelector('select#audioInput1');
+var audioOutput1Select = document.querySelector('select#audioOutput1');
+var audioInput2Select = document.querySelector('select#audioInput2');
+var audioOutput2Select = document.querySelector('select#audioOutput2');
+var selectors = [audioInput1Select, audioOutput1Select, audioInput2Select, audioOutput2Select];
+
+var call1StartBtn = document.getElementById("call1StartBtn");
+var call1StopBtn = document.getElementById("call1StopBtn");
+
+var call2StartBtn = document.getElementById("call2StartBtn");
+var call2StopBtn = document.getElementById("call2StopBtn");
+
 
 function gotDevices(deviceInfos) {
   // Handles being called several times to update labels. Preserve values.
   var values = selectors.map(function(select) {
     return select.value;
   });
+
   selectors.forEach(function(select) {
     while (select.firstChild) {
       select.removeChild(select.firstChild);
     }
   });
+
   for (var i = 0; i !== deviceInfos.length; ++i) {
     var deviceInfo = deviceInfos[i];
-    var option = document.createElement('option');
-    option.value = deviceInfo.deviceId;
+    var option1 = document.createElement('option');
+    var option2 = document.createElement('option');
+    option1.value = deviceInfo.deviceId;
+    option2.value = deviceInfo.deviceId;
+
     if (deviceInfo.kind === 'audioinput') {
-      option.text = deviceInfo.label ||
-        'microphone ' + (audioInputSelect.length + 1);
-      audioInputSelect.appendChild(option);
+      console.log("Set input option text");
+      option1.text = deviceInfo.label || 'microphone ' + (audioInput1Select.length + 1);
+      option2.text = deviceInfo.label || 'microphone ' + (audioInput1Select.length + 1);
+
+      audioInput1Select.appendChild(option1);
+      audioInput2Select.appendChild(option2);
     } else if (deviceInfo.kind === 'audiooutput') {
-      option.text = deviceInfo.label || 'speaker ' +
-          (audioOutputSelect.length + 1);
-      audioOutputSelect.appendChild(option);
+      console.log("Set output option text");
+      option1.text = deviceInfo.label || 'speaker ' + (audioOutput1Select.length + 1);
+      option2.text = deviceInfo.label || 'microphone ' + (audioInput1Select.length + 1);
+
+      audioOutput1Select.appendChild(option1);
+      audioOutput2Select.appendChild(option2);
+
     } else if (deviceInfo.kind === 'videoinput') {
-      option.text = deviceInfo.label || 'camera ' + (videoSelect.length + 1);
-      videoSelect.appendChild(option);
+      // Ignore video
     } else {
       console.log('Some other kind of source/device: ', deviceInfo);
     }
@@ -75,43 +103,166 @@ function attachSinkId(element, sinkId) {
       }
       console.error(errorMessage);
       // Jump back to first output device in the list as it's the default.
-      audioOutputSelect.selectedIndex = 0;
+      audioOutput1Select.selectedIndex = 0;
     });
   } else {
     console.warn('Browser does not support output device selection.');
   }
 }
+window.ua = new SIP.UA();
 
-function changeAudioDestination() {
-  var audioDestination = audioOutputSelect.value;
-  attachSinkId(videoElement, audioDestination);
+var logSession = function(session) {
+
+  session.on('progress', function () {
+    console.log('Ringing...');
+  });
+
+  session.on('accepted', function () {
+    console.log('Connected...');
+  });
+
+  session.on('failed', function () {
+    console.log('Failed...');
+  });
+
+  session.on('bye', function () {
+    console.log('Byte...');
+  });
+
+}
+
+var call1Session;
+var call2Session;
+
+function stopCall(session) {
+
+  if(session != undefined) {
+    session.bye();
+  }
+  else {
+    console.log("Unable to end session");
+  }
+}
+
+function stopCall1() {
+  stopCall(call1Session);
+  call1StartBtn.setAttribute("class","visible");
+  call1StopBtn.setAttribute("class","hidden");
+
+}
+
+function stopCall2() {
+  stopCall(call2Session);
+
+  call2StartBtn.setAttribute("class","visible");
+  call2StopBtn.setAttribute("class","hidden");
+
+
+}
+
+function call1() {
+
+  call1StartBtn.setAttribute("class","hidden");
+  call1StopBtn.setAttribute("class","visible");
+
+  var audio1 = document.getElementById('audio1');
+
+  var audioDestination1 = audioOutput1Select.value;
+  attachSinkId(audio1, audioDestination1);
+
+  var constraints1 = {
+    media: {
+      stream: window.stream1,
+      render: {
+        remote: {
+          audio: audio1
+        },
+        local: {
+          audio: audio1
+        }
+      }
+    }
+  };
+
+  audio1.src = window.URL.createObjectURL(window.stream1);
+  call1Session = window.ua.invite('15555557998@webrtctest.onsip.com', audio1);
+
+  logSession(call1Session);
+}
+
+function call2() {
+
+  call2StartBtn.setAttribute("class","hidden");
+  call2StopBtn.setAttribute("class","visible");
+
+  var audio2 = document.getElementById('audio2');
+  var audioDestination2 = audioOutput2Select.value;
+  attachSinkId(audio2, audioDestination2);
+
+  var constraints2 = {
+    media: {
+      stream: window.stream2,
+      render: {
+        remote: {
+          audio: audio2
+        },
+        local: {
+          audio: audio2
+        }
+      }
+    }
+  };
+  audio2.src = window.URL.createObjectURL(window.stream2);
+  call2Session = window.ua.invite('15555557998@webrtctest.onsip.com', audio2);
+  logSession(call2Session);
 }
 
 function start() {
-  if (window.stream) {
-    window.stream.getTracks().forEach(function(track) {
+  if (window.stream1) {
+    window.stream1.getTracks().forEach(function(track) {
       track.stop();
     });
   }
-  var audioSource = audioInputSelect.value;
-  var videoSource = videoSelect.value;
-  var constraints = {
-    audio: {deviceId: audioSource ? {exact: audioSource} : undefined},
-    video: {deviceId: videoSource ? {exact: videoSource} : undefined}
+
+  if (window.stream2) {
+    window.stream2.getTracks().forEach(function(track) {
+      track.stop();
+    });
+  }
+
+  var audioSource1 = audioInput1Select.value;
+  var constraints1 = {
+    audio: {deviceId: audioSource1 ? {exact: audioSource1} : undefined}
   };
-  navigator.mediaDevices.getUserMedia(constraints)
+
+  // Get stream for first audio input device
+  navigator.mediaDevices.getUserMedia(constraints1)
   .then(function(stream) {
-    window.stream = stream; // make stream available to console
-    videoElement.srcObject = stream;
+
+    window.stream1 = stream; // make stream available to console
     // Refresh button list in case labels have become available
     return navigator.mediaDevices.enumerateDevices();
   })
   .then(gotDevices)
   .catch(errorCallback);
-}
 
-audioInputSelect.onchange = start;
-audioOutputSelect.onchange = changeAudioDestination;
-videoSelect.onchange = start;
+
+  var audioSource2 = audioInput2Select.value;
+  var constraints2 = {
+    audio: {deviceId: audioSource2 ? {exact: audioSource2} : undefined}
+  };
+
+  // Get stream for second audio input device
+  navigator.mediaDevices.getUserMedia(constraints2)
+      .then(function(stream) {
+
+        window.stream2 = stream; // make stream available to console
+        // Refresh button list in case labels have become available
+        return navigator.mediaDevices.enumerateDevices();
+      })
+      .then(gotDevices)
+      .catch(errorCallback);
+
+}
 
 start();
